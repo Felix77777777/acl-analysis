@@ -2,63 +2,100 @@ import streamlit as st
 import pandas as pd
 from datetime import date
 
-st.set_page_config(page_title="ACL 病歷分析系統", layout="wide")
+st.set_page_config(page_title="ACL 術後康復分析系統", layout="wide")
 
-# 初始化 Session State 資料表
-if 'patients' not in st.session_state:
-    st.session_state['patients'] = pd.DataFrame(columns=[
-        'patient_id', 'age', 'gender', 'injury_date', 'surgery_date',
-        'rehab_duration_weeks', 'return_to_sport', 'knee_stability_score'
-    ])
+# 初始化 session_state 儲存資料
+if "data" not in st.session_state:
+    st.session_state.data = []
 
-st.title("🏥 ACL 病歷分析系統")
+st.title("🦵 ACL 重建術後康復評估系統")
 
-# 區塊 1：輸入病歷
-with st.form("add_form"):
-    st.subheader("➕ 新增患者資料")
-    col1, col2 = st.columns(2)
-    with col1:
-        pid = st.text_input("患者 ID")
-        age = st.number_input("年齡", min_value=0, step=1)
-        gender = st.selectbox("性別", ["M", "F"])
-        rehab_weeks = st.number_input("復健週數", min_value=0, step=1)
-    with col2:
-        injury_date = st.date_input("受傷日期", value=date.today())
-        surgery_date = st.date_input("手術日期", value=date.today())
-        return_sport = st.selectbox("是否回到運動", ["Yes", "No"])
-        knee_score = st.slider("膝穩定度分數", 0.0, 100.0, step=0.1)
+st.header("📋 基本資料")
+patient_id = st.text_input("患者 ID")
+age = st.number_input("年齡", 10, 100)
+sex = st.selectbox("性別", ["男", "女"])
+side = st.selectbox("術側", ["左膝", "右膝"])
+revision = st.selectbox("是否為再次重建手術", ["否", "是"])
 
-    submitted = st.form_submit_button("新增資料")
-    if submitted:
-        new_row = {
-            'patient_id': pid,
-            'age': age,
-            'gender': gender,
-            'injury_date': injury_date,
-            'surgery_date': surgery_date,
-            'rehab_duration_weeks': rehab_weeks,
-            'return_to_sport': return_sport,
-            'knee_stability_score': knee_score
-        }
-        st.session_state['patients'] = pd.concat([st.session_state['patients'], pd.DataFrame([new_row])], ignore_index=True)
-        st.success("✅ 病歷資料新增成功！")
+st.header("🏃 術前資訊")
+sport_type = st.text_input("術前運動類型")
+height = st.number_input("身高 (cm)", 100, 250)
+weight = st.number_input("體重 (kg)", 30.0, 200.0)
+bmi = round(weight / ((height / 100) ** 2), 2) if height else 0
+st.write(f"✅ 自動計算 BMI：{bmi}")
 
-# 區塊 2：顯示所有資料
-st.subheader("📋 所有患者資料")
-st.dataframe(st.session_state['patients'], use_container_width=True)
+st.header("🩹 術後資訊")
+injury_date = st.date_input("受傷日期", value=date(2024, 1, 1))
+surgery_date = st.date_input("手術日期", value=date.today())
+delay_days = (surgery_date - injury_date).days
+st.write(f"📆 手術延遲天數：{delay_days} 天")
 
-# 區塊 3：統計分析
-if not st.session_state['patients'].empty:
-    st.subheader("📊 資料統計分析")
-    df = st.session_state['patients']
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("平均年齡", f"{df['age'].mean():.1f} 歲")
-        st.metric("平均復健週數", f"{df['rehab_duration_weeks'].mean():.1f} 週")
-    with col2:
-        st.metric("回運動人數", f"{(df['return_to_sport'] == 'Yes').sum()} 人")
-        st.metric("平均膝穩定度", f"{df['knee_stability_score'].mean():.1f} 分")
+st.header("💪 恢復指標")
+rehab_weeks = st.number_input("復健週數", 0, 100)
+knee_stability = st.slider("膝關節穩定度分數", 0, 100)
+ikdc_score = st.slider("IKDC 分數", 0, 100)
+quads_strength = st.number_input("股四頭肌肌力（kg）", 0.0, 200.0)
+pain_vas = st.slider("術後疼痛指數 (VAS)", 0, 10)
+swelling = st.selectbox("膝關節是否腫脹", ["無", "有"])
+giveaway = st.selectbox("Giveaway 發生頻率", ["無", "偶爾", "經常"])
+performance = st.selectbox("運動表現", ["優秀", "普通", "不佳"])
+glute_tone = st.selectbox("臀中肌張力（幗旁肌）", ["正常", "過高", "不足"])
+knee_rom = st.number_input("膝關節活動度 ROM（°）", 0, 150)
+knee_mmt = st.selectbox("膝關節 MMT 等級", ["0", "1", "2", "3", "4", "5"])
 
-# （可選）匯出資料
-st.download_button("⬇️ 下載 CSV", data=st.session_state['patients'].to_csv(index=False),
-                   file_name="acl_patients.csv", mime="text/csv")
+st.header("🏅 RTS（回運動）模組")
+hop_test = st.number_input("單腳跳測試左右比值（%）", 0, 150)
+strength_ratio = st.number_input("股四頭肌力左右比值（%）", 0, 150)
+acl_rsi = st.slider("ACL-RSI 分數", 0, 100)
+rts_complete = st.selectbox("是否完成 RTS 測試流程", ["否", "是"])
+
+# 評估 RTS 是否達標
+rts_qualified = (hop_test >= 90) and (strength_ratio >= 90) and (acl_rsi >= 65)
+if rts_qualified and rts_complete == "是":
+    st.success("✅ 建議：符合回運動條件，可進行進階運動訓練。")
+else:
+    st.warning("⚠️ 尚未符合 RTS 標準，建議繼續復健與追蹤。")
+
+if st.button("✅ 儲存本筆資料"):
+    st.session_state.data.append({
+        "ID": patient_id,
+        "年齡": age,
+        "性別": sex,
+        "術側": side,
+        "再次重建": revision,
+        "運動類型": sport_type,
+        "身高(cm)": height,
+        "體重(kg)": weight,
+        "BMI": bmi,
+        "受傷日": injury_date,
+        "手術日": surgery_date,
+        "延遲日數": delay_days,
+        "復健週數": rehab_weeks,
+        "膝穩定度": knee_stability,
+        "IKDC": ikdc_score,
+        "股四頭肌力": quads_strength,
+        "疼痛VAS": pain_vas,
+        "腫脹": swelling,
+        "Giveaway": giveaway,
+        "運動表現": performance,
+        "臀中肌張力": glute_tone,
+        "ROM": knee_rom,
+        "MMT": knee_mmt,
+        "單腳跳比值": hop_test,
+        "肌力比值": strength_ratio,
+        "ACL-RSI": acl_rsi,
+        "RTS 完成": rts_complete,
+        "RTS 符合": "是" if rts_qualified and rts_complete == "是" else "否"
+    })
+    st.success("資料已儲存 ✅")
+
+st.header("📊 資料總覽與下載")
+
+if st.session_state.data:
+    df = pd.DataFrame(st.session_state.data)
+    st.dataframe(df)
+
+    csv = df.to_csv(index=False).encode("utf-8-sig")
+    st.download_button("📥 下載所有資料 (CSV)", csv, "ACL_Recovery_Data.csv", "text/csv")
+else:
+    st.info("尚無儲存資料")
