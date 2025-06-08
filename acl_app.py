@@ -94,7 +94,29 @@ st.header("📊 資料總覽與下載")
 if st.session_state.data:
     df = pd.DataFrame(st.session_state.data)
     st.dataframe(df)
+    st.header("📈 資料分析報告")
 
+    # 平均值計算
+    st.subheader("📊 平均值統計")
+    st.write(f"平均 IKDC 分數：{df['IKDC'].mean():.2f}")
+    st.write(f"平均股四頭肌肌力：{df['股四頭肌力'].mean():.2f} kg")
+    st.write(f"平均 ACL-RSI 分數：{df['ACL-RSI'].mean():.2f}")
+    st.write(f"平均 ROM：{df['ROM'].mean():.2f}°")
+
+    # RTS 符合率
+    st.subheader("✅ RTS 合格分析")
+    rts_rate = (df["RTS 符合"] == "是").mean() * 100
+    st.write(f"RTS 合格比例：{rts_rate:.1f}%")
+
+    # Giveaway 發生頻率統計
+    st.subheader("⚠️ Giveaway 發生頻率")
+    giveaway_counts = df["Giveaway"].value_counts()
+    st.bar_chart(giveaway_counts)
+
+    # 性別與 RTS 比例交叉比對
+    st.subheader("📌 性別與 RTS 成功比率")
+    gender_rts = pd.crosstab(df["性別"], df["RTS 符合"], normalize='index') * 100
+    st.dataframe(gender_rts.round(1))
     csv = df.to_csv(index=False).encode("utf-8-sig")
     st.download_button("📥 下載所有資料 (CSV)", csv, "ACL_Recovery_Data.csv", "text/csv")
 else:
