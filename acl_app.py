@@ -1,12 +1,15 @@
 import streamlit as st
 import pandas as pd
 from datetime import date
-import altair as alt
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="ACL 術後康復分析系統", layout="wide")
 
-# 初始化 session_state 儲存資料
-# 加入範例資料（僅在啟動時一次性加入）
+# 初始化 session_state
+if "data" not in st.session_state:
+    st.session_state.data = []
+
+# 加入範例資料（僅一次）
 if not st.session_state.data:
     st.session_state.data = [
         {
@@ -43,6 +46,7 @@ if not st.session_state.data:
 
 st.title("🦵 ACL 重建術後康復評估系統")
 
+# 輸入欄位
 st.header("📋 基本資料")
 patient_id = st.text_input("患者 ID")
 age = st.number_input("年齡", 10, 100)
@@ -54,7 +58,7 @@ st.header("🏃 術前資訊")
 sport_type = st.text_input("術前運動類型")
 height = st.number_input("身高 (cm)", 100, 250)
 weight = st.number_input("體重 (kg)", 30.0, 200.0)
-bmi = round(weight / ((height / 100) ** 2), 2) if height > 0 else 0
+bmi = round(weight / ((height / 100) ** 2), 2) if height else 0
 st.write(f"✅ 自動計算 BMI：{bmi}")
 
 st.header("🩹 術後資訊")
@@ -82,7 +86,7 @@ strength_ratio = st.number_input("股四頭肌力左右比值（%）", 0, 150)
 acl_rsi = st.slider("ACL-RSI 分數", 0, 100)
 rts_complete = st.selectbox("是否完成 RTS 測試流程", ["否", "是"])
 
-# 評估 RTS 是否達標
+# RTS 評估
 rts_qualified = (hop_test >= 90) and (strength_ratio >= 90) and (acl_rsi >= 65)
 if rts_qualified and rts_complete == "是":
     st.success("✅ 建議：符合回運動條件，可進行進階運動訓練。")
@@ -123,46 +127,45 @@ if st.button("✅ 儲存本筆資料"):
     })
     st.success("資料已儲存 ✅")
 
-st.header("📊 資料總覽與下載")
+st.header("📊 資料總覽與分析")
 
 if st.session_state.data:
     df = pd.DataFrame(st.session_state.data)
     st.dataframe(df)
 
-    st.header("📈 資料分析報告")
-
-    st.subheader("📊 平均值統計")
+    st.subheader("📈 平均值分析")
     st.write(f"平均 IKDC 分數：{df['IKDC'].mean():.2f}")
     st.write(f"平均股四頭肌肌力：{df['股四頭肌力'].mean():.2f} kg")
     st.write(f"平均 ACL-RSI 分數：{df['ACL-RSI'].mean():.2f}")
     st.write(f"平均 ROM：{df['ROM'].mean():.2f}°")
 
-    st.subheader("✅ RTS 合格分析")
+    st.subheader("✅ RTS 合格率")
     rts_rate = (df["RTS 符合"] == "是").mean() * 100
     st.write(f"RTS 合格比例：{rts_rate:.1f}%")
 
-    st.subheader("⚠️ Giveaway 發生頻率")
-    giveaway_counts = df["Giveaway"].value_counts()
-    st.bar_chart(giveaway_counts)
+    st.subheader("⚠️ Giveaway 發生頻率統計")
+    st.bar_chart(df["Giveaway"].value_counts())
 
-    st.subheader("📌 性別與 RTS 成功比率")
-    gender_rts = pd.crosstab(df["性別"], df["RTS 符合"], normalize='index') * 100
-    st.dataframe(gender_rts.round(1))
+    st.subheader("📌 性別與 RTS 成功率")
+    st.dataframe(pd.crosstab(df["性別"], df["RTS 符合"], normalize='index') * 100)
 
-    csv = df.to_csv(index=False).encode("utf-8-sig")
-    st.download_button("📥 下載所有資料 (CSV)", csv, "ACL_Recovery_Data.csv", "text/csv")
-
-    st.header("🧬 個別患者追蹤分析")
-    patient_ids = df["ID"].unique()
-    selected_id = st.selectbox("選擇患者 ID 進行追蹤分析", patient_ids)
+    st.subheader("📊 個別患者追蹤趨勢圖")
+    selected_id = st.selectbox("選擇要查看的患者 ID", df["ID"].unique())
     patient_data = df[df["ID"] == selected_id].sort_values("記錄日期")
 
-    if len(patient_data) < 2:
-        st.info("此患者目前只有一筆資料，無法畫出趨勢圖。")
-    else:
-        st.line_chart(
-            patient_data.set_index("記錄日期")[["IKDC", "股四頭肌力", "ACL-RSI", "ROM"]],
-            use_container_width=True
-        )
+    if not patient_data.empty:
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.plot(patient_data["記錄日期"], patient_data["IKDC"], label="IKDC")
+        ax.plot(patient_data["記錄日期"], patient_data["股四頭肌力"], label="股四頭肌力")
+        ax.plot(patient_data["記錄日期"], patient_data["ACL-RSI"], label="ACL-RSI")
+        ax.plot(patient_data["記錄日期"], patient_data["ROM"], label="ROM")
+        ax.set_ylabel("分數/度數")
+        ax.set_title(f"📉 {selected_id} 康復指標趨勢圖")
+        ax.legend()
+        st.pyplot(fig)
+
+    # 下載資料
+    csv = df.to_csv(index=False).encode("utf-8-sig")
+    st.download_button("📥 下載所有資料 (CSV)", csv, "ACL_Recovery_Data.csv", "text/csv")
 else:
     st.info("尚無儲存資料")
