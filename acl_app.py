@@ -36,7 +36,6 @@ quads_strength = st.number_input("股四頭肌肌力（kg）", 0.0, 200.0)
 pain_vas = st.slider("術後疼痛指數 (VAS)", 0, 10)
 swelling = st.selectbox("膝關節是否水腫", ["無", "輕微", "中度", "嚴重"])
 giveaway = st.text_input("Giveaway 發生頻率（自由輸入）")
-performance = st.selectbox("運動表現主觀評價", ["優秀", "普通", "不佳"])
 hamstring_tightness = st.selectbox("Hamstring 肌肉張力", ["正常", "輕度緊繃", "中度緊繃", "嚴重緊繃"])
 knee_rom = st.number_input("膝關節活動度 ROM（°）", 0, 150)
 knee_mmt = st.selectbox("膝關節 MMT 等級", ["0", "1", "2", "3", "4", "5"])
@@ -64,7 +63,7 @@ st.write(f"👉 交叉跳遠比值（右/左）：{ratio_crossover}%")
 
 left_timed = st.number_input("6 公尺計時跳（左腳 sec）", 0.0, 20.0)
 right_timed = st.number_input("6 公尺計時跳（右腳 sec）", 0.0, 20.0)
-ratio_timed = calc_ratio(left_timed, right_timed)  # 小於 100 表現較佳
+ratio_timed = calc_ratio(left_timed, right_timed)  # 注意：此比值低代表右腳較快
 st.write(f"👉 6 公尺跳比值（左/右時間）：{ratio_timed}%")
 
 st.header("📈 RTS 模組")
@@ -98,7 +97,6 @@ if st.button("✅ 儲存本筆資料"):
         "疼痛VAS": pain_vas,
         "水腫": swelling,
         "Giveaway": giveaway,
-        "運動表現": performance,
         "Hamstring張力": hamstring_tightness,
         "ROM": knee_rom,
         "MMT": knee_mmt,
