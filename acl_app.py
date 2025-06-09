@@ -4,7 +4,6 @@ from datetime import date
 
 st.set_page_config(page_title="ACL 術後康復分析系統", layout="wide")
 
-# 初始化 session_state 儲存資料
 if "data" not in st.session_state:
     st.session_state.data = []
 
@@ -35,20 +34,44 @@ rehab_weeks = st.number_input("復健週數", 0, 100)
 ikdc_score = st.slider("IKDC 分數", 0, 100)
 quads_strength = st.number_input("股四頭肌肌力（kg）", 0.0, 200.0)
 pain_vas = st.slider("術後疼痛指數 (VAS)", 0, 10)
-swelling = st.selectbox("水腫", ["無", "輕度", "中度", "重度"])
-giveaway = st.text_input("Giveaway 發生頻率（自由填寫）")
-performance = st.selectbox("運動表現", ["優秀", "普通", "不佳"])
-hamstring = st.selectbox("Hamstring 肌肉張力", ["正常", "過高", "不足"])
+swelling = st.selectbox("膝關節是否水腫", ["無", "輕微", "中度", "嚴重"])
+giveaway = st.text_input("Giveaway 發生頻率（自由輸入）")
+performance = st.selectbox("運動表現主觀評價", ["優秀", "普通", "不佳"])
+hamstring_tightness = st.selectbox("Hamstring 肌肉張力", ["正常", "輕度緊繃", "中度緊繃", "嚴重緊繃"])
 knee_rom = st.number_input("膝關節活動度 ROM（°）", 0, 150)
 knee_mmt = st.selectbox("膝關節 MMT 等級", ["0", "1", "2", "3", "4", "5"])
 
-st.header("🏅 RTS（回運動）模組")
-hop_test = st.number_input("單腳跳測試左右比值（%）", 0, 150)
+st.header("🏅 運動表現（Hop Tests 比值計算）")
+
+def calc_ratio(right, left):
+    return round((right / left) * 100, 1) if left else 0
+
+# 輸入 + 自動比值
+left_single = st.number_input("單腳跳遠（左腳 cm）", 0.0, 500.0)
+right_single = st.number_input("單腳跳遠（右腳 cm）", 0.0, 500.0)
+ratio_single = calc_ratio(right_single, left_single)
+st.write(f"👉 單腳跳遠比值（右/左）：{ratio_single}%")
+
+left_triple = st.number_input("三級跳遠（左腳 cm）", 0.0, 1000.0)
+right_triple = st.number_input("三級跳遠（右腳 cm）", 0.0, 1000.0)
+ratio_triple = calc_ratio(right_triple, left_triple)
+st.write(f"👉 三級跳遠比值（右/左）：{ratio_triple}%")
+
+left_crossover = st.number_input("交叉跳遠（左腳 cm）", 0.0, 1000.0)
+right_crossover = st.number_input("交叉跳遠（右腳 cm）", 0.0, 1000.0)
+ratio_crossover = calc_ratio(right_crossover, left_crossover)
+st.write(f"👉 交叉跳遠比值（右/左）：{ratio_crossover}%")
+
+left_timed = st.number_input("6 公尺計時跳（左腳 sec）", 0.0, 20.0)
+right_timed = st.number_input("6 公尺計時跳（右腳 sec）", 0.0, 20.0)
+ratio_timed = calc_ratio(left_timed, right_timed)  # 小於 100 表現較佳
+st.write(f"👉 6 公尺跳比值（左/右時間）：{ratio_timed}%")
+
+st.header("📈 RTS 模組")
+hop_test = st.number_input("單腳跳測試總比值（%）", 0, 150)
 strength_ratio = st.number_input("股四頭肌力左右比值（%）", 0, 150)
 acl_rsi = st.slider("ACL-RSI 分數", 0, 100)
 rts_complete = st.selectbox("是否完成 RTS 測試流程", ["否", "是"])
-
-# 評估 RTS 是否達標
 rts_qualified = (hop_test >= 90) and (strength_ratio >= 90) and (acl_rsi >= 65)
 if rts_qualified and rts_complete == "是":
     st.success("✅ 建議：符合回運動條件，可進行進階運動訓練。")
@@ -76,10 +99,14 @@ if st.button("✅ 儲存本筆資料"):
         "水腫": swelling,
         "Giveaway": giveaway,
         "運動表現": performance,
-        "Hamstring": hamstring,
+        "Hamstring張力": hamstring_tightness,
         "ROM": knee_rom,
         "MMT": knee_mmt,
-        "單腳跳比值": hop_test,
+        "單腳跳遠比值": ratio_single,
+        "三級跳遠比值": ratio_triple,
+        "交叉跳遠比值": ratio_crossover,
+        "6公尺跳比值": ratio_timed,
+        "單腳跳總比值": hop_test,
         "肌力比值": strength_ratio,
         "ACL-RSI": acl_rsi,
         "RTS 完成": rts_complete,
@@ -87,36 +114,19 @@ if st.button("✅ 儲存本筆資料"):
     })
     st.success("資料已儲存 ✅")
 
-st.header("📊 資料總覽與下載")
-
+st.header("📊 資料總覽與分析")
 if st.session_state.data:
     df = pd.DataFrame(st.session_state.data)
     st.dataframe(df)
-    st.header("📈 資料分析報告")
 
-    # 平均值計算
-    st.subheader("📊 平均值統計")
-    st.write(f"平均 IKDC 分數：{df['IKDC'].mean():.2f}")
-    st.write(f"平均股四頭肌肌力：{df['股四頭肌力'].mean():.2f} kg")
-    st.write(f"平均 ACL-RSI 分數：{df['ACL-RSI'].mean():.2f}")
+    st.subheader("📈 資料分析")
+    st.write(f"平均 IKDC：{df['IKDC'].mean():.2f}")
+    st.write(f"平均股四頭肌力：{df['股四頭肌力'].mean():.2f} kg")
+    st.write(f"平均 ACL-RSI：{df['ACL-RSI'].mean():.2f}")
     st.write(f"平均 ROM：{df['ROM'].mean():.2f}°")
+    st.write(f"RTS 合格率：{(df['RTS 符合'] == '是').mean() * 100:.1f}%")
 
-    # RTS 符合率
-    st.subheader("✅ RTS 合格分析")
-    rts_rate = (df["RTS 符合"] == "是").mean() * 100
-    st.write(f"RTS 合格比例：{rts_rate:.1f}%")
-
-    # Giveaway 發生頻率統計（文字欄位不支援 bar chart）
-    st.subheader("📌 Giveaway 頻率（文字輸入）")
-    st.write(df["Giveaway"].value_counts())
-
-    # 性別與 RTS 比例交叉比對
-    st.subheader("📌 性別與 RTS 成功比率")
-    gender_rts = pd.crosstab(df["性別"], df["RTS 符合"], normalize='index') * 100
-    st.dataframe(gender_rts.round(1))
-
-    # 下載資料按鈕
     csv = df.to_csv(index=False).encode("utf-8-sig")
-    st.download_button("📥 下載所有資料 (CSV)", csv, "ACL_Recovery_Data.csv", "text/csv")
+    st.download_button("📥 下載資料 (CSV)", csv, "ACL_Recovery.csv", "text/csv")
 else:
-    st.info("尚無儲存資料")
+    st.info("尚無資料")
