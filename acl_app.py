@@ -9,6 +9,7 @@ if "data" not in st.session_state:
 
 st.title("🦵 ACL 重建術後康復評估系統")
 
+# ------------------ 基本資料 ------------------
 st.header("📋 基本資料")
 patient_id = st.text_input("患者 ID")
 age = st.number_input("年齡", 10, 100)
@@ -16,6 +17,7 @@ sex = st.selectbox("性別", ["男", "女"])
 side = st.selectbox("術側", ["左膝", "右膝"])
 revision = st.selectbox("是否為再次重建手術", ["否", "是"])
 
+# ------------------ 術前資訊 ------------------
 st.header("🏃 術前資訊")
 sport_type = st.text_input("術前運動類型")
 height = st.number_input("身高 (cm)", 100, 250)
@@ -23,12 +25,14 @@ weight = st.number_input("體重 (kg)", 30.0, 200.0)
 bmi = round(weight / ((height / 100) ** 2), 2) if height else 0
 st.write(f"✅ 自動計算 BMI：{bmi}")
 
+# ------------------ 術後資訊 ------------------
 st.header("🩹 術後資訊")
 injury_date = st.date_input("受傷日期", value=date(2024, 1, 1))
 surgery_date = st.date_input("手術日期", value=date.today())
 delay_days = (surgery_date - injury_date).days
 st.write(f"📆 手術延遲天數：{delay_days} 天")
 
+# ------------------ 恢復指標 ------------------
 st.header("💪 恢復指標")
 rehab_weeks = st.number_input("復健週數", 0, 100)
 ikdc_score = st.slider("IKDC 分數", 0, 100)
@@ -40,12 +44,13 @@ hamstring_tightness = st.selectbox("Hamstring 肌肉張力", ["正常", "輕度�
 knee_rom = st.number_input("膝關節活動度 ROM（°）", 0, 150)
 knee_mmt = st.selectbox("膝關節 MMT 等級", ["0", "1", "2", "3", "4", "5"])
 
+# ------------------ 運動表現（Hop Tests） ------------------
 st.header("🏅 運動表現（Hop Tests 比值計算）")
 
 def calc_ratio(right, left):
     return round((right / left) * 100, 1) if left else 0
 
-# 輸入 + 自動比值
+# Hop Test 輸入與比值
 left_single = st.number_input("單腳跳遠（左腳 cm）", 0.0, 500.0)
 right_single = st.number_input("單腳跳遠（右腳 cm）", 0.0, 500.0)
 ratio_single = calc_ratio(right_single, left_single)
@@ -63,9 +68,10 @@ st.write(f"👉 交叉跳遠比值（右/左）：{ratio_crossover}%")
 
 left_timed = st.number_input("6 公尺計時跳（左腳 sec）", 0.0, 20.0)
 right_timed = st.number_input("6 公尺計時跳（右腳 sec）", 0.0, 20.0)
-ratio_timed = calc_ratio(left_timed, right_timed)  # 注意：此比值低代表右腳較快
+ratio_timed = calc_ratio(left_timed, right_timed)  # 時間比值，低代表右腳快
 st.write(f"👉 6 公尺跳比值（左/右時間）：{ratio_timed}%")
 
+# ------------------ RTS 模組 ------------------
 st.header("📈 RTS 模組")
 hop_test = st.number_input("單腳跳測試總比值（%）", 0, 150)
 strength_ratio = st.number_input("股四頭肌力左右比值（%）", 0, 150)
@@ -77,6 +83,7 @@ if rts_qualified and rts_complete == "是":
 else:
     st.warning("⚠️ 尚未符合 RTS 標準，建議繼續復健與追蹤。")
 
+# ------------------ 儲存資料 ------------------
 if st.button("✅ 儲存本筆資料"):
     st.session_state.data.append({
         "ID": patient_id,
@@ -112,6 +119,7 @@ if st.button("✅ 儲存本筆資料"):
     })
     st.success("資料已儲存 ✅")
 
+# ------------------ 資料總覽與分析 ------------------
 st.header("📊 資料總覽與分析")
 if st.session_state.data:
     df = pd.DataFrame(st.session_state.data)
@@ -128,3 +136,4 @@ if st.session_state.data:
     st.download_button("📥 下載資料 (CSV)", csv, "ACL_Recovery.csv", "text/csv")
 else:
     st.info("尚無資料")
+    
